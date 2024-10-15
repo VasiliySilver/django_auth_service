@@ -1,4 +1,4 @@
-.PHONY: help init install update run test lint migrate superuser clean commit bump release
+.PHONY: help install update run test lint clean commit bump release docker-build docker-up docker-down
 
 # Переменные
 PYTHON_VERSION := 3.12.0
@@ -8,41 +8,19 @@ MANAGE := $(PYTHON) manage.py
 
 # Помощь
 help:
-	@echo "Доступные команды:"
-	@echo "  make init       - Инициализация проекта (pyenv, poetry, commitizen)"
-	@echo "  make install    - Установка зависимостей с помощью Poetry"
-	@echo "  make update     - Обновление зависимостей"
-	@echo "  make run        - Запуск сервера разработки"
-	@echo "  make test       - Запуск тестов"
-	@echo "  make lint       - Проверка кода линтером"
-	@echo "  make migrate    - Применение миграций"
-	@echo "  make superuser  - Создание суперпользователя"
-	@echo "  make clean      - Очистка файлов кэша и временных файлов"
-	@echo "  make commit     - Создание коммита с помощью Commitizen"
-	@echo "  make bump       - Увеличение версии проекта"
-	@echo "  make release    - Создание нового релиза"
-
-# Инициализация проекта
-init:
-	@echo "Инициализация проекта..."
-	@if ! command -v pyenv >/dev/null 2>&1; then \
-		echo "pyenv не установлен. Пожалуйста, установите pyenv перед продолжением."; \
-		exit 1; \
-	fi
-	@echo "Установка Python $(PYTHON_VERSION) через pyenv..."
-	pyenv install $(PYTHON_VERSION) -s
-	@echo "Создание виртуального окружения для проекта..."
-	pyenv virtualenv $(PYTHON_VERSION) $(PROJECT_NAME)
-	pyenv local $(PROJECT_NAME)
-	@echo "Установка poetry..."
-	pip install poetry
-	@echo "Инициализация poetry..."
-	poetry init -n
-	@echo "Добавление dev-зависимостей..."
-	poetry add --dev pytest flake8 mypy commitizen
-	@echo "Настройка commitizen..."
-	poetry run cz init
-	@echo "Инициализация завершена."
+	@echo "Available commands:"
+	@echo "  install    - Install dependencies using Poetry"
+	@echo "  update     - Update dependencies"
+	@echo "  run        - Run the development server"
+	@echo "  test       - Run tests"
+	@echo "  lint       - Check code with linters"
+	@echo "  clean      - Clean cache and temporary files"
+	@echo "  commit     - Create a commit using Commitizen"
+	@echo "  bump       - Bump the project version"
+	@echo "  release    - Create a new release"
+	@echo "  docker-build - Build Docker images"
+	@echo "  docker-up  - Start Docker containers"
+	@echo "  docker-down - Stop Docker containers"
 
 # Установка зависимостей
 install:
@@ -54,34 +32,21 @@ update:
 
 # Запуск сервера разработки
 run:
-	$(MANAGE) runserver
+	poetry run python src/manage.py runserver
 
 # Запуск тестов
 test:
-	poetry run pytest
+	DJANGO_ENVIRONMENT=testing poetry run python src/manage.py test tests
 
 # Проверка кода линтером
 lint:
-	poetry run flake8 .
-	poetry run mypy .
-
-# Применение миграций
-migrate:
-	$(MANAGE) migrate
-
-# Создание суперпользователя
-superuser:
-	$(MANAGE) createsuperuser
+	poetry run flake8 src tests
+	poetry run mypy src tests
 
 # Очистка файлов кэша и временных файлов
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
-	find . -type f -name "*.pyo" -delete
-	find . -type f -name "*.pyd" -delete
-	find . -type f -name "*.db" -delete
-	rm -rf .pytest_cache
-	rm -rf .mypy_cache
 
 # Создание коммита с помощью Commitizen
 commit:
@@ -89,11 +54,20 @@ commit:
 
 # Увеличение версии проекта
 bump:
-	poetry run cz bump --changelog
+	poetry run cz bump
 
 # Создание нового релиза
 release:
-	@echo "Создание нового релиза..."
 	poetry run cz bump --changelog
-	git push
-	git push --tags
+
+# Build Docker images
+docker-build:
+	docker-compose -f docker/docker-compose.yml build
+
+# Start Docker containers
+docker-up:
+	docker-compose -f docker/docker-compose.yml up
+
+# Stop Docker containers
+docker-down:
+	docker-compose -f docker/docker-compose.yml down

@@ -38,10 +38,15 @@ run:
 test:
 	DJANGO_ENVIRONMENT=testing poetry run python src/manage.py test tests
 
-# Проверка кода линтером
+# Проверка кода линтером и автоисправление
 lint:
-	poetry run flake8 src tests
+	poetry run ruff check src tests
+	poetry run ruff format src tests
 	poetry run mypy src tests
+
+lint-fix:
+	poetry run ruff check --fix src tests
+	poetry run ruff format src tests
 
 # Очистка файлов кэша и временных файлов
 clean:
